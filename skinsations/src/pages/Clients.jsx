@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
-import {collection, onSnapshot} from "firebase/firestore";
-import {db} from "../services/firebase.js";
+import {collection, onSnapshot, deleteDoc, doc, query, where, getDocs} from "firebase/firestore";
+import {ref, deleteObject} from "firebase/storage";
+import {db, storage} from "../services/firebase.js";
 import {Link} from "react-router-dom";
 
 export default function Clients() {
@@ -34,6 +35,43 @@ export default function Clients() {
     const indexOfLastClient = currentPage * clientsPerPage;
     const indexOfFirstClient = indexOfLastClient - clientsPerPage;
     const currentClients = filteredClients.slice(indexOfFirstClient, indexOfLastClient);
+
+    // Delete client handler
+    async function handleDeleteClient(e, client) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer ${client.prenom} ${client.nom} ? Cette action supprimera également toutes ses séances et photos.`)) {
+            return;
+        }
+
+        try {
+            // Delete all seances for this client
+            const seancesQuery = query(collection(db, "seances"), where("clientId", "==", client.id));
+            const seancesSnap = await getDocs(seancesQuery);
+            for (const seanceDoc of seancesSnap.docs) {
+                await deleteDoc(seanceDoc.ref);
+            }
+
+            // Delete all photos from storage
+            if (client.photos && client.photos.length > 0) {
+                for (const photo of client.photos) {
+                    try {
+                        const storageRef = ref(storage, photo.filename);
+                        await deleteObject(storageRef);
+                    } catch (err) {
+                        console.error("Error deleting photo:", err);
+                    }
+                }
+            }
+
+            // Delete the client document
+            await deleteDoc(doc(db, "clients", client.id));
+        } catch (error) {
+            console.error("Error deleting client:", error);
+            alert("Erreur lors de la suppression de la cliente");
+        }
+    }
 
     return (
         <div className="bg-white rounded-2xl shadow-lg p-6 border border-pink-100">
@@ -97,16 +135,26 @@ export default function Clients() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {currentClients.map(c => (
-                            <Link
+                            <div
                                 key={c.id}
-                                to={`/client/${c.id}`}
-                                className="block p-4 border border-pink-200 rounded-xl hover:shadow-lg hover:border-rose-300 transition-all bg-gradient-to-br from-pink-50 to-rose-50 hover:from-white hover:to-pink-50"
+                                className="relative group p-4 border border-pink-200 rounded-xl hover:shadow-lg hover:border-rose-300 transition-all bg-gradient-to-br from-pink-50 to-rose-50 hover:from-white hover:to-pink-50"
                             >
-                                <div className="text-lg font-semibold text-rose-700 mb-1">
-                                    {c.prenom} {c.nom}
-                                </div>
-                                <div className="text-sm text-rose-500">{c.telephone}</div>
-                            </Link>
+                                <Link to={`/client/${c.id}`} className="block">
+                                    <div className="text-lg font-semibold text-rose-700 mb-1">
+                                        {c.prenom} {c.nom}
+                                    </div>
+                                    <div className="text-sm text-rose-500">{c.telephone}</div>
+                                </Link>
+                                <button
+                                    onClick={(e) => handleDeleteClient(e, c)}
+                                    className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Supprimer"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
                         ))}
                     </div>
 

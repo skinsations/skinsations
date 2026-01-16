@@ -63,13 +63,36 @@ export default function AddSeance() {
 
             <div className="mb-4">
                 <label className="block text-gray-700 font-medium mb-2">Zone</label>
-                <input
-                    type="text"
+                <select
                     value={zone}
                     onChange={e => setZone(e.target.value)}
-                    className="w-full px-4 py-2 border border-pink-200 rounded-xl focus:ring-2 focus:ring-rose-400 focus:border-transparent outline-none"
-                    placeholder="Ex: Visage, Jambes, etc."
-                />
+                    className="w-full px-4 py-2 border border-pink-200 rounded-xl focus:ring-2 focus:ring-rose-400 focus:border-transparent outline-none bg-white"
+                >
+                    <option value="">Sélectionner...</option>
+                    <option value="Lèvre supérieure">Lèvre supérieure</option>
+                    <option value="Visage complet">Visage complet</option>
+                    <option value="Nuque">Nuque</option>
+                    <option value="Menton">Menton</option>
+                    <option value="Favoris">Favoris</option>
+                    <option value="Poitrine">Poitrine</option>
+                    <option value="Ventre complet">Ventre complet</option>
+                    <option value="Aisselles">Aisselles</option>
+                    <option value="Ligne du nombril">Ligne du nombril</option>
+                    <option value="Dos complet">Dos complet</option>
+                    <option value="Demi-dos">Demi-dos</option>
+                    <option value="Bras complet">Bras complet</option>
+                    <option value="Demi-bras">Demi-bras</option>
+                    <option value="Inter-fessier">Inter-fessier</option>
+                    <option value="Fesses complètes">Fesses complètes</option>
+                    <option value="Bikini intégral">Bikini intégral</option>
+                    <option value="Bikini contour">Bikini contour</option>
+                    <option value="Jambes complètes">Jambes complètes</option>
+                    <option value="Demi-jambes">Demi-jambes</option>
+                    <option value="Cuisses">Cuisses</option>
+                    <option value="Pieds">Pieds</option>
+                    <option value="Orteils/Doigts">Orteils/Doigts</option>
+                    <option value="Aréoles">Aréoles</option>
+                </select>
             </div>
 
             <div className="mb-4">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { doc, getDoc, collection, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, deleteDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "../services/firebase.js";
 
@@ -10,6 +10,7 @@ export default function Client() {
     const [seances, setSeances] = useState([]);
     const [filterNumero, setFilterNumero] = useState("");
     const [filterMachine, setFilterMachine] = useState("");
+    const [filterZone, setFilterZone] = useState("");
     const [uploading, setUploading] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [isEditingClient, setIsEditingClient] = useState(false);
@@ -41,12 +42,20 @@ export default function Client() {
     // Constant filter options
     const MACHINES = ["VECTUS", "CLARITY"];
     const SESSION_NUMBERS = [...Array(20)].map((_, i) => i + 1);
+    const ZONES = [
+        "Lèvre supérieure", "Visage complet", "Nuque", "Menton", "Favoris",
+        "Poitrine", "Ventre complet", "Aisselles", "Ligne du nombril",
+        "Dos complet", "Demi-dos", "Bras complet", "Demi-bras",
+        "Inter-fessier", "Fesses complètes", "Bikini intégral", "Bikini contour",
+        "Jambes complètes", "Demi-jambes", "Cuisses", "Pieds", "Orteils/Doigts", "Aréoles"
+    ];
 
     // Filter seances based on selected filters
     const filteredSeances = seances.filter(seance => {
         const matchNumero = !filterNumero || seance.numero?.toString() === filterNumero;
         const matchMachine = !filterMachine || seance.machine === filterMachine;
-        return matchNumero && matchMachine;
+        const matchZone = !filterZone || seance.zone === filterZone;
+        return matchNumero && matchMachine && matchZone;
     });
 
     // Photo upload handler
@@ -105,6 +114,20 @@ export default function Client() {
         } catch (error) {
             console.error("Error deleting photo:", error);
             alert("Erreur lors de la suppression de la photo");
+        }
+    }
+
+    // Seance delete handler
+    async function handleSeanceDelete(seance) {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer la séance #${seance.numero} ?`)) {
+            return;
+        }
+
+        try {
+            await deleteDoc(doc(db, "seances", seance.id));
+        } catch (error) {
+            console.error("Error deleting seance:", error);
+            alert("Erreur lors de la suppression de la séance");
         }
     }
 
@@ -256,7 +279,7 @@ export default function Client() {
 
                 {/* Filters */}
                 {seances.length > 0 && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl border border-pink-200">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl border border-pink-200">
                         <div>
                             <label className="block text-rose-700 font-medium mb-2 text-sm">
                                 Filtrer par numéro de séance
@@ -289,8 +312,24 @@ export default function Client() {
                             </select>
                         </div>
 
-                        {(filterNumero || filterMachine) && (
-                            <div className="md:col-span-2 flex items-center justify-between">
+                        <div>
+                            <label className="block text-rose-700 font-medium mb-2 text-sm">
+                                Filtrer par zone
+                            </label>
+                            <select
+                                value={filterZone}
+                                onChange={e => setFilterZone(e.target.value)}
+                                className="w-full px-4 py-2 border border-pink-200 rounded-xl focus:ring-2 focus:ring-rose-400 focus:border-transparent outline-none bg-white"
+                            >
+                                <option value="">Toutes les zones</option>
+                                {ZONES.map(zone => (
+                                    <option key={zone} value={zone}>{zone}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {(filterNumero || filterMachine || filterZone) && (
+                            <div className="md:col-span-3 flex items-center justify-between">
                                 <p className="text-sm text-rose-600">
                                     {filteredSeances.length} séance(s) trouvée(s)
                                 </p>
@@ -298,6 +337,7 @@ export default function Client() {
                                     onClick={() => {
                                         setFilterNumero("");
                                         setFilterMachine("");
+                                        setFilterZone("");
                                     }}
                                     className="text-sm text-rose-600 hover:text-rose-800 font-medium"
                                 >
@@ -330,12 +370,20 @@ export default function Client() {
                                         </span>
                                         <span className="text-gray-600">{seance.date}</span>
                                     </div>
-                                    <Link
-                                        to={`/edit-seance/${id}/${seance.id}`}
-                                        className="px-4 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
-                                    >
-                                        Modifier
-                                    </Link>
+                                    <div className="flex items-center gap-2">
+                                        <Link
+                                            to={`/edit-seance/${id}/${seance.id}`}
+                                            className="px-4 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+                                        >
+                                            Modifier
+                                        </Link>
+                                        <button
+                                            onClick={() => handleSeanceDelete(seance)}
+                                            className="px-4 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors font-medium"
+                                        >
+                                            Supprimer
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
                                     <div>
